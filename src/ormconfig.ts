@@ -1,5 +1,4 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { TagEntity } from '@app/tag/tag.entity';
 
 const config: TypeOrmModuleOptions = {
   type: 'postgres',
@@ -8,7 +7,7 @@ const config: TypeOrmModuleOptions = {
   username: 'postgres',
   password: process.env.DATABASE_PASSWORD,
   database: 'mediumclone',
-  entities: [TagEntity],
+  autoLoadEntities: true,
   synchronize: true,
 };
 export default config;
