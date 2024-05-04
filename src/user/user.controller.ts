@@ -1,4 +1,10 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpException,
+  HttpStatus,
+  Post,
+} from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/createUser.dto';
 
@@ -8,6 +14,10 @@ export class UserController {
 
   @Post('users')
   async createUser(@Body('user') createUserDto: CreateUserDto) {
-    return this.userService.createUser(createUserDto);
+    if (createUserDto) {
+      const user = await this.userService.createUser(createUserDto);
+      if (user) return this.userService.buildUserResponse(user);
+      else return new HttpException('user already exists', HttpStatus.CONFLICT);
+    }
   }
 }
