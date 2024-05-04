@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/createUser.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from './user.entity';
 import { Repository } from 'typeorm';
 import { sign } from 'jsonwebtoken';
 import { JWT_SECRET } from '@app/config';
+import { LoginUserDto } from './dto/loginUser.dto';
+import { compare } from 'bcryptjs';
 
 @Injectable()
 export class UserService {
@@ -18,10 +20,42 @@ export class UserService {
       where: { email: createUserDto.email },
     });
 
-    if (!userByEmail) {
+    const userByUsername = await this.userRepository.findOne({
+      where: { username: createUserDto.username },
+    });
+
+    if (!userByEmail || !userByUsername) {
       const newUser = new UserEntity();
       Object.assign(newUser, createUserDto);
       return await this.userRepository.save(newUser);
+    } else {
+      throw new HttpException('User already exists', HttpStatus.CONFLICT);
+    }
+  }
+
+  async loginUser(user: LoginUserDto) {
+    const findUsername = await this.userRepository.findOne({
+      where: { username: user.username },
+      select: ['bio', 'email', 'id', 'image', 'password', 'username'],
+    });
+
+    if (findUsername) {
+      const comparePassword = await compare(
+        user.password,
+        findUsername.password,
+      );
+
+      if (comparePassword) {
+        delete findUsername.password;
+        return findUsername;
+      } else {
+        throw new HttpException(
+          'Wrong credentials provided',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+    } else {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
   }
 
