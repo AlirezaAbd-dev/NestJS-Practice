@@ -7,6 +7,7 @@ import { sign } from 'jsonwebtoken';
 import { JWT_SECRET } from '@app/config';
 import { LoginUserDto } from './dto/loginUser.dto';
 import { compare } from 'bcryptjs';
+import { UpdateUserDto } from './dto/updateUser.dto';
 
 @Injectable()
 export class UserService {
@@ -33,6 +34,14 @@ export class UserService {
     }
   }
 
+  async findById(id: number) {
+    const user = await this.userRepository.findOne({
+      where: { id },
+    });
+
+    return user;
+  }
+
   async loginUser(user: LoginUserDto) {
     const findUsername = await this.userRepository.findOne({
       where: { username: user.username },
@@ -54,6 +63,15 @@ export class UserService {
           HttpStatus.UNAUTHORIZED,
         );
       }
+    } else {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+  }
+
+  async updateUser(userId: number, user: UpdateUserDto) {
+    const findUser = await this.findById(userId);
+    if (findUser) {
+      return await this.userRepository.update({ id: userId }, user);
     } else {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
