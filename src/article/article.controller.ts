@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ArticleService } from './article.service';
@@ -16,6 +17,11 @@ import { UserEntity } from '@app/user/user.entity';
 @Controller('articles')
 export class ArticleController {
   constructor(private readonly articleService: ArticleService) {}
+
+  @Get()
+  async findAll(@User('id') userId: number, @Query() query: any) {
+    return await this.articleService.findAll(userId, query);
+  }
 
   @Post()
   @UseGuards(AuthGuard)
