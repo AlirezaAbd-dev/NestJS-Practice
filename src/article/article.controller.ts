@@ -48,4 +48,17 @@ export class ArticleController {
   async deleteArticle(@Param('slug') slug: string) {
     return this.articleService.deleteArticle(slug);
   }
+
+  @Post(':slug/favorite')
+  @UseGuards(AuthGuard)
+  async addArticleToFavorites(
+    @User('id') userId: number,
+    @Param('slug') slug: string,
+  ) {
+    const article = await this.articleService.addArticleToFavorite(
+      userId,
+      slug,
+    );
+    return this.articleService.buildArticleResponse(article);
+  }
 }
