@@ -39,6 +39,21 @@ export class ArticleService {
       });
     }
 
+    if (query.favorited) {
+      const author = await this.userRepository.findOne({
+        where: { username: query.favorited },
+        select: { id: true },
+        relations: ['favorites'],
+      });
+      const ids = author.favorites.map((el) => el.id);
+
+      if (ids.length > 0) {
+        queryBuilder.andWhere('article.authorId IN (:...ids)', { ids });
+      } else {
+        queryBuilder.andWhere('1=0');
+      }
+    }
+
     queryBuilder.orderBy('articles.createdAt', 'DESC');
 
     const articlesCount = await queryBuilder.getCount();
@@ -51,9 +66,24 @@ export class ArticleService {
       queryBuilder.offset(query.offset);
     }
 
-    const articles = await queryBuilder.getMany();
+    let favoriteIds: number[] = [];
 
-    return { articles, articlesCount };
+    if (userId) {
+      const currentUser = await this.userRepository.findOne({
+        where: { id: userId },
+        relations: ['favorites'],
+      });
+
+      favoriteIds = currentUser.favorites.map((favorite) => favorite.id);
+    }
+
+    const articles = await queryBuilder.getMany();
+    const articlesWithFavorited = articles.map((article) => {
+      const favorited = favoriteIds.includes(article.id);
+      return { ...article, favorited };
+    });
+
+    return { articles: articlesWithFavorited, articlesCount };
   }
 
   async createArticle(user: UserEntity, createArticleDto: CreateArticleDto) {
@@ -102,7 +132,26 @@ export class ArticleService {
       await this.articleRepository.save(article);
     }
 
-    console.log(user);
+    return article;
+  }
+
+  async deleteArticleFromFavorite(userId: number, slug: string) {
+    const article = await this.getSingleArticle(slug);
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['favorites'],
+    });
+
+    const articleIndex = user.favorites.findIndex(
+      (article) => article.id === article.id,
+    );
+
+    if (articleIndex >= 0) {
+      user.favorites.splice(articleIndex, 1);
+      article.favoritesCount--;
+      await this.userRepository.save(user);
+      await this.articleRepository.save(article);
+    }
 
     return article;
   }
